@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { google } from 'googleapis';
+import multer from "multer";
+import fs from 'fs';
 
 const router = Router();
 
@@ -15,17 +17,22 @@ const driveClient = google.drive({
     auth: auth,
 });
 
+const upload = multer({ dest: 'uploads/' });
+
 // Endpoint to upload a file to Google Drive
-router.post('/upload', async (req: Request, res: Response) => {
+router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
     try {
+        if (!req.file) {
+            return res.status(400).json({message: 'No file uploaded'});
+        }
         const fileMetadata = {
-            name: 'photo.jpg',
-            mimeType: 'image/jpeg',
+            name: req.file.originalname,
+            mimeType: req.file.mimetype,
         };
 
         const media = {
-            mimeType: 'image/jpeg',
-            body: req.body, // Assuming the body contains the file stream
+            mimeType: req.file.mimetype,
+            body: fs.createReadStream(req.file.path), // Assuming the body contains the file stream
         };
 
         const file = await driveClient.files.create({
@@ -62,6 +69,27 @@ router.get('/get-folders-and-pictures', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error retrieving folders and images:', error);
         res.status(500).send('Failed to fetch folders and images.');
+    }
+});
+
+
+// Endpoint to test connection to Google Drive
+router.get('/test-connection', async (req: Request, res: Response) => {
+    try {
+        // Testing Google Drive API connection by listing files in the root folder
+        const filesResponse = await driveClient.files.list({
+            pageSize: 1,
+            fields: 'files(id, name)',
+        });
+
+        if (filesResponse.data.files?.length > 0) {
+            res.status(200).send('Connection to Google Drive successful!');
+        } else {
+            res.status(500).send('No files found. Connection failed.');
+        }
+    } catch (error) {
+        console.error('Error connecting to Google Drive:', error);
+        res.status(500).send('Connection to Google Drive failed.');
     }
 });
 

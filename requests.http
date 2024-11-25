@@ -2,4 +2,10 @@
 GET http://localhost:3000/test-connection
 
 
-###
+### Get Folders and Pictures
+GET http://localhost:3000/drive/get-folders-and-pictures
+
+
+### Upload new Picture
+
+POST http://localhost:3000/drive/upload
