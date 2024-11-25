@@ -1,17 +1,36 @@
 {
-  "name": "GoogleDriveAccessR",
+  "name": "googledriveaccessr",
   "version": "1.0.0",
-  "description": "",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc"
   },
   "dependencies": {
-    "googleapis": "^144.0.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "googleapis": "^144.0.0",
+    "readline-sync": "^1.4.10"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.9.1",
+    "@types/readline-sync": "^1.4.8",
     "typescript": "^5.5.3"
   },
-  "private": true
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/R06NV4LDR/GDriveAccessR.git"
+  },
+  "keywords": [
+    "Google",
+    "Drive"
+  ],
+  "author": "RAB",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/R06NV4LDR/GDriveAccessR/issues"
+  },
+  "homepage": "https://github.com/R06NV4LDR/GDriveAccessR#readme",
+  "description": ""
 }
