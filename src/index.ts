@@ -1,26 +1,25 @@
 import dotenv from "dotenv";
 import express, { Request, Response } from 'express';
-import {oauth2} from "googleapis/build/src/apis/oauth2";
-import {drive_v3} from "googleapis";
-const multer = require('multer');
-const { google } = require('googleapis');
-const app = express();
-const upload = multer({ dest: 'uploads/' }); // Destination folder for uploaded files
-const router = express.Router();
-
-// const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+import multer from 'multer';
+import { google, drive_v3 } from 'googleapis';
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Configuration
-const clientId = process.env.CLIENT_ID;
-const clientSecret = process.env.CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI;
-const scopes = ['https://www.googleapis.com/auth/drive'];
+const app = express();
+const upload = multer({dest: 'uploads/'})
+const router = express.Router();
+
+const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    process.env.REDIRECT_URI
+    );
 
 // Create an OAuth2 client
-const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+oAuth2Client.setCredentials({
+    refresh_token: process.env.REFRESH_TOKEN
+});
 
 // Generate the authentication URL
 const authUrl = oAuth2Client.generateAuthUrl({
@@ -38,7 +37,7 @@ router.get('/auth/google', (req: Request, res: Response) => {
     res.send(authUrl);
 });
 
-var drive = google.drive.v3({
+const drive: drive_v3.Drive = google.drive.v3({
     version: "v3",
     auth: oAuth2Client,
 });
@@ -46,6 +45,11 @@ var drive = google.drive.v3({
 // Handle the callback from the authentication flow
 router.get('/auth/google/callback', async (req: Request, res: Response) => {
     const code = req.query.code;
+
+    if (typeof code !== 'string') {
+        res.status(400).send('Invalid or missing authorization code');
+        return;
+    }
 
     try {
         // Exchange the authorization code for access and refresh tokens
