@@ -1,51 +1,41 @@
 import { Router, Request, Response } from 'express';
 import { google } from 'googleapis';
-import multer from "multer";
+import multer from 'multer';
 import fs from 'fs';
 
 const router = Router();
-const KEY_FILE_PATH = './service-account.json';
+const KEY_FILE_PATH = './service-account.json'; // Replace with your path
 
+// Google Drive Authentication
 const auth = new google.auth.GoogleAuth({
     keyFile: KEY_FILE_PATH,
     scopes: ['https://www.googleapis.com/auth/drive'],
 });
-const driveClient = google.drive({
-    version: 'v3',
-    auth: auth,
-});
+const driveClient = google.drive({ version: 'v3', auth });
 
+// Multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Endpoint to upload a file to Google Drive
-router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
+// **1. Test Connection to Google Drive**
+router.get('/test-connection', async (req: Request, res: Response) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({message: 'No file uploaded'});
-        }
-        const fileMetadata = {
-            name: req.file.originalname,
-            mimeType: req.file.mimetype,
-        };
-
-        const media = {
-            mimeType: req.file.mimetype,
-            body: fs.createReadStream(req.file.path), // Assuming the body contains the file stream
-        };
-
-        const file = await driveClient.files.create({
-            requestBody: fileMetadata,
-            media: media,
+        const filesResponse = await driveClient.files.list({
+            pageSize: 1,
+            fields: 'files(id, name)',
         });
 
-        res.status(200).send('File uploaded successfully!');
+        if (filesResponse.data.files?.length) {
+            res.status(200).send('Connection to Google Drive successful!');
+        } else {
+            res.status(200).send('Connected, but no files found.');
+        }
     } catch (error) {
-        console.error('Error uploading file:', error);
-        res.status(500).send('File upload failed.');
+        console.error('Connection test failed:', error);
+        res.status(500).send('Connection to Google Drive failed.');
     }
 });
 
-// Endpoint to get folders and images from Google Drive
+// **2. Get Folders and Pictures**
 router.get('/get-folders-and-pictures', async (req: Request, res: Response) => {
     try {
         const foldersResponse = await driveClient.files.list({
@@ -58,36 +48,56 @@ router.get('/get-folders-and-pictures', async (req: Request, res: Response) => {
             fields: 'files(id, name, mimeType)',
         });
 
-        const data = {
+        res.status(200).json({
             folders: foldersResponse.data.files,
             images: imagesResponse.data.files,
-        };
-
-        res.status(200).json(data);
+        });
     } catch (error) {
-        console.error('Error retrieving folders and images:', error);
+        console.error('Error fetching folders and pictures:', error);
         res.status(500).send('Failed to fetch folders and images.');
     }
 });
 
-
-// Endpoint to test connection to Google Drive
-router.get('/test-connection', async (req: Request, res: Response) => {
+// **3. Upload a File**
+router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
     try {
-        // Testing Google Drive API connection by listing files in the root folder
-        const filesResponse = await driveClient.files.list({
-            pageSize: 1,
-            fields: 'files(id, name)',
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const fileMetadata = { name: req.file.originalname };
+        const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
+
+        const file = await driveClient.files.create({
+            requestBody: fileMetadata,
+            media: media,
+            fields: 'id',
         });
 
-        if (filesResponse.data.files && filesResponse.data.files.length > 0) {
-            res.status(200).send('Connection to Google Drive successful!');
-        } else {
-            res.status(500).send('No files found. Connection failed.');
-        }
+        res.status(200).json({ message: 'File uploaded successfully!', fileId: file.data.id });
     } catch (error) {
-        console.error('Error connecting to Google Drive:', error);
-        res.status(500).send('Connection to Google Drive failed.');
+        console.error('Error uploading file:', error);
+        res.status(500).send('File upload failed.');
+    }
+});
+
+// **4. Download a File**
+router.get('/download/:fileId', async (req: Request, res: Response) => {
+    try {
+        const fileId = req.params.fileId;
+
+        const response = await driveClient.files.get(
+            { fileId, alt: 'media' },
+            { responseType: 'stream' }
+        );
+
+        response.data
+            .on('end', () => console.log('File download completed.'))
+            .on('error', (error) => console.error('Error downloading file:', error))
+            .pipe(res);
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).send('Failed to download the file.');
     }
 });
 
