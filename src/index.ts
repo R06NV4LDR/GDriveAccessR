@@ -6,11 +6,9 @@ import driveRoutes from './driveRoutes'; // Import the routes module
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json()); // Middleware to parse JSON request bodies
-
-// Use the routes from the separate file
 app.use('/drive', driveRoutes); // Prefix all routes with '/drive'
 
 // Test the server connection (basic check)
@@ -19,6 +17,6 @@ app.get('/test-connection', (req: Request, res: Response) => {
 });
 
 // Start the server
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });

@@ -4,14 +4,12 @@ import multer from "multer";
 import fs from 'fs';
 
 const router = Router();
+const KEY_FILE_PATH = './service-account.json';
 
-// Service Account credentials for Google API
-const KEY_FILE_PATH = './service-account.json'; // Replace with your path
 const auth = new google.auth.GoogleAuth({
     keyFile: KEY_FILE_PATH,
     scopes: ['https://www.googleapis.com/auth/drive'],
 });
-
 const driveClient = google.drive({
     version: 'v3',
     auth: auth,
@@ -82,7 +80,7 @@ router.get('/test-connection', async (req: Request, res: Response) => {
             fields: 'files(id, name)',
         });
 
-        if (filesResponse.data.files?.length > 0) {
+        if (filesResponse.data.files && filesResponse.data.files.length > 0) {
             res.status(200).send('Connection to Google Drive successful!');
         } else {
             res.status(500).send('No files found. Connection failed.');
